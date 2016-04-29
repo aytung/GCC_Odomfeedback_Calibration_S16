@@ -75,7 +75,7 @@ void RoboState::turnForward()
 
 
   double angleRotation = 0;
-    double radianConvert = 57.288;
+  double radianConvert = 57.288;
     if (getX()>0 && getY()==0){
          angleRotation=0;
     }

@@ -26,13 +26,13 @@ int main(int argc, char **argv)
   geometry_msgs::Twist cmd_vel;
   ros::Rate loopRate(1); // 10 hz
   int count = 0; 
-  //while(ros::ok())
-  //  {
+  while(ros::ok())
+    {
 	
       // turnThenForward go is invoked when we want TurtleBot to turn in direction of destination
       // then go forward
-	robot.testForward();
-	//	robot.turnThenForwardGo();
+      //robot.testForward();
+		robot.turnThenForwardGo();
       /*
 	if(count < 3)
 	  robot.testForward();
@@ -46,7 +46,7 @@ int main(int argc, char **argv)
 	//robot.goRobotGo();
 	ros::spinOnce();
 	loopRate.sleep();
-	//  }
+	  }
   return 0;
 }
 
