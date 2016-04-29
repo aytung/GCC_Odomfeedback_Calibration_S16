@@ -35,7 +35,7 @@ void RoboState::testForward()
   // in the x direction by incrementAmt
 
   this->velocityCommand.linear.x = 0;
-  this->velocityCommand.angular.z = left_180
+  this->velocityCommand.angular.z = left_180;
 	  
   velocityPublisher.publish(this->velocityCommand);
   // ideally, this is the amount that x has changed
