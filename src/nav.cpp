@@ -1,6 +1,6 @@
 #ifndef NAV_CPP
 #define NAV_CPP
-#include <turtlebot/mymsg.h>
+#include <sample_pubsub/mymsg.h>
 #include "nav.h"
 #include "ros/ros.h"
 #include <string>
@@ -18,7 +18,7 @@ const double right_90 = -2.56;
 // this is how long the TurtleBot takes to move incrementAmt distance forward
 const double movementInterval = 500000;
 
-const double left_180 = 5;
+const double left_180 = 2.5;
 
 
 
@@ -63,7 +63,9 @@ void RoboState::messageCallback(const turtlebot::mymsg::ConstPtr& msg)
       }
     else
       ROS_INFO("Cannot accept message. Movement still in progress.");
-
+    setErr(sqrt(pow(getX(),2)+pow(getY(),2))*.1);
+    setIsXswapped(false);
+    
     /* cout << "X: "<< msg->x << std::endl;
   cout << "Y: " << msg->y << std::endl;
   cout << endl;
@@ -158,23 +160,40 @@ void RoboState::turnForward()
     setMessageStatus(false);
     }
   }
+
+
+void RoboState::odomCallback(const nav_msgs::Odometry::ConstPtr& odom)
+{
+  setOdomX(odom->twist.twist.linear.x);
+  setOdomY(odom->twist.twist.linear.y);
+}
+
+
+
   
   // Basic initialization and publisher/subscribers. May need to adjust rates.
-  RoboState::RoboState(ros::NodeHandle rosNode): xCoord(0), yCoord(0), messageStatus(false), turnAndGoForward(false)
+RoboState::RoboState(ros::NodeHandle rosNode): xCoord(0), yCoord(0), messageStatus(false), turnAndGoForward(false), isXswapped(false), oldXodom(0), oldYodom(0)
   {
     this->node = rosNode;
     this->velocityPublisher = this->node.advertise<geometry_msgs::Twist>("/mobile_base/commands/velocity", 1);
     this->messageSubscriber= this->node.subscribe("my_msg", 1000, &RoboState::messageCallback, this);
     this->bumperSubscriber = this->node.subscribe("/mobile_base/sensors/core", 100, &RoboState::bumperCallback, this);
+    this->odomSubscriber = this->node.subscribe("/odom", 100, &Robostate::odomCallback, this);
   }
 
   // basically goForward does everything for us until it tells us we're done
   void RoboState::goRobotGo()
   {
-    if(isMessageSet()){
-      goForward();
+    if(isMessageSet() && !getIsXswapped()){
+      goForwardX();
     }
+    else(isMessageSet() && getIsXswapped()){
+	goForwardY();
+      }
+    else
+      {}
   }
+
   
   // first we turn the robot towards destination, then just go forward like normal
   void RoboState::turnThenForwardGo(){
@@ -201,34 +220,43 @@ void RoboState::turnForward()
       return -1;
   }
 
-  void RoboState::goForward()
+  void RoboState::goForwardX()
   {
     // may need to adjust value for whatever reason
 
     //    usleep(100000);
 
     
-    if(getX()!=0)
+    if(getX()<=incrementAmt || getX() =< -incrementAmt )
       {
-
+	
 	double xMoveCommand; 
+	
 	// only move forward incrementAmt if the amount left to move is greater than incrementAmt
-	if (std::abs(getX()) > incrementAmt){
+	//	if (std::abs(getX()) > incrementAmt){
 	  // ideally, this should result in forward (or backward movement)
 	  usleep(movementInterval);
 	  // in the x direction by incrementAmt
+	  
 	  xMoveCommand = incrementAmt*movementMultiple*xIsNegative();
 	  this->velocityCommand.linear.x = xMoveCommand;
 	  this->velocityCommand.angular.z = 0.0;
 	  
 	  velocityPublisher.publish(this->velocityCommand);
-	  ROS_INFO("The amount we published was %f", xMoveCommand);
+	  //ROS_INFO("The amount we published was %f", xMoveCommand);
 	  // ideally, this is the amount that x has changed
-	  this->incrementX(-1*xIsNegative()*incrementAmt);
+	  
+	  double currentYodom = getYodom();
+	  double amountMoved = currentYodom-getXodomOld();
+	  setX(getX()-amountMoved);
+	  setXodomOld(currentXodom);
+	  
+	  setX(getX()-currentOdom+getXodomOld());
+	  setXodomOld(currentXodom);
 	  // we should wait until forward movement has finished before we go on
 	  usleep(50000);
 
-	  ROS_INFO("We moved %f", incrementAmt);
+	  ROS_INFO("We moved %f", amountMoved );
 	  ROS_INFO("The remaining amount to move is %f", getX());
 	}
 	else{
@@ -241,28 +269,76 @@ void RoboState::turnForward()
 	  velocityPublisher.publish(this->velocityCommand);
 	  ROS_INFO("We moved forward %f", getX());
 	  // assume we moved forward or backward in the exactly how much was left in xCoord
-	  this->incrementX(-getX());
+
+	  double currentXodom = getXodom();
+	  double amountMoved = currentXodom-getXodomOld();
+	  setX(getX()-amountMoved);
+	  setXodomOld(currentXodom);
 
 	  ROS_INFO("The remaining amount to move is %f (should be zero)", getX());
 	}
       }
-    else{
-      if(getY()==0){
-	// means that both x and y are 0, so we should stop 
-	// does this by setting messageStatus to false
-	ROS_INFO("The both x and y are zero, so we are done with movemet.");
-	ROS_INFO("Feel free to send more messages.");
-	setMessageStatus(false);
-      }
-      else{
-	// if x is zero, but y isnt, then we need to rotate to face towards the final destination
-	rotateLR();
-	ROS_INFO("The value of x was zero, so we did not move forward.");
-      }
-    }
+
   }
 	      
+void RoboState::goForwardY()
+{
 
+  if(getY()<=incrementAmt && getY() =< incrementAmt )
+      {
+	
+	double xMoveCommand; 
+	
+	// only move forward incrementAmt if the amount left to move is greater than incrementAmt
+	//if (std::abs(getX()) > incrementAmt){
+	  // ideally, this should result in forward (or backward movement)
+	  usleep(movementInterval);
+	  // in the x direction by incrementAmt
+	  
+	  xMoveCommand = incrementAmt*movementMultiple*xIsNegative();
+	  this->velocityCommand.linear.x = xMoveCommand;
+	  this->velocityCommand.angular.z = 0.0;
+	  
+	  velocityPublisher.publish(this->velocityCommand);
+	  ROS_INFO("The amount we published was %f", xMoveCommand);
+
+	  // ideally, this is the amount that x has changed
+	  double currentYodom = getXodom();
+	  double amountMoved = currentYodom-getYodomOld();
+	  setY(getY()-amountMoved);
+	  setYodomOld(currentYodom);
+
+	  // we should wait until forward movement has finished before we go on
+	  usleep(50000);
+
+	  ROS_INFO("We moved %f", amountMoved);
+	  ROS_INFO("The remaining amount to move is %f", getY());
+	}
+	else{
+	  // we have less than the incrementAmt left, so we move however much remaining
+	  // do not need to know if xCoord is negative or not, since we get the actual value
+	  double currentYodom = getYodom();
+	  double amountMoved = currentYodom-getYodomOld();
+	  
+	  xMoveCommand = getY()*movementMultiple;
+	  this->velocityCommand.linear.x = xMoveCommand;
+	  this->velocityCommand.angular.z = 0.0;
+
+	  velocityPublisher.publish(this->velocityCommand);
+	  ROS_INFO("We moved forward %f", );
+
+	  // assume we moved forward or backward in the exactly how much was left in xCoord
+	  double currentYodom = getXodom();
+	  double amountMoved = currentYodom-getYodomOld();
+	  setY(getY()-amountMoved);
+	  setYodomOld(currentYodom);
+
+	  ROS_INFO("The remaining amount to move is %f (should be around zero)", getY());
+	}
+      }
+
+
+}
 
   // assumes that x is zero and y is nonzero. May want to add cases for when method is called in error
   void RoboState::rotateLR()
@@ -361,3 +437,19 @@ void RoboState::turnForward()
   }
 
 #endif
+/*
+    else{
+      if(getY()==0){
+	// means that both x and y are 0, so we should stop 
+	// does this by setting messageStatus to false
+	ROS_INFO("The both x and y are zero, so we are done with movemet.");
+	ROS_INFO("Feel free to send more messages.");
+	setMessageStatus(false);
+      }
+      else{
+	// if x is zero, but y isnt, then we need to rotate to face towards the final destination
+	rotateLR();
+	ROS_INFO("The value of x was zero, so we did not move forward.");
+      }
+    }
+*/

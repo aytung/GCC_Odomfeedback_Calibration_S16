@@ -42,7 +42,7 @@ int main(int argc, char **argv)
       // rotate towards destination and then move forward
 	//	if(count==0)
 	//	  robot.rotateRight();
-	count++;
+		//	count++;
 	//robot.goRobotGo();
 	ros::spinOnce();
 	loopRate.sleep();

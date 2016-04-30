@@ -29,6 +29,17 @@ using namespace std;
 class RoboState
   {
   private:
+    ros::Subscriber odomSubscriber;
+    double xTarget;
+    double yTarget;
+    double xOdom;
+    double yOdom;
+    double oldXodom;
+    double oldYodom;
+    
+    double acceptErr;
+    bool isXswapped;
+    bool getIsXswapped();
     ros::NodeHandle node;
     geometry_msgs::Twist velocityCommand;
     ros::Publisher velocityPublisher;
@@ -48,6 +59,7 @@ class RoboState
     void setX(double x);
     void setY(double y);
     double getY();
+    
     // we still don't know what SpinOnce does
     //void SpinOnce();
     bool getTurnAndGoForward();
@@ -59,6 +71,23 @@ class RoboState
     void  goForward();
     void rotateLeft();
     void rotateRight();
+    void setErr(double err);
+    double getErr();
+    double getXodom();
+    double getYodom();
+    void setXodom(double xOdom);
+    void setYodom(double yOdom);
+    double getOldXodom();
+    double getOldYodom();
+    void setOldXodom();
+    void setOldYodom();
+    double getOldXodom();
+    double getOldYodom();
+    void setOldXodom(double xOdom);
+    void setOldYodom(double yOdom);
+    bool getIsXswapped();
+    
+    
   public:
     void testForward();
     void turnThenForwardGo();
