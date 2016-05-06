@@ -87,6 +87,7 @@ class RoboState
     double yIsNegative();
     
   public:
+    void turn_180();
     void testForward();
     void setXodom(double xOdom);
 

@@ -35,15 +35,18 @@ int main(int argc, char **argv)
   
   ros::Rate loopRate(1); // 10 hz
   int count = 0; 
-  while(ros::ok())
+  
+  /* while(ros::ok())
     {
 	
       robot.setXodom(xOdom);
       robot.setYodom(yOdom);
+  */
       // turnThenForward go is invoked when we want TurtleBot to turn in direction of destination
       // then go forward
       //      robot.testForward();
-      robot.goRobotGo();
+      //robot.goRobotGo();
+  
       /*
 	if(count < 3)
 	  robot.testForward();
@@ -55,9 +58,13 @@ int main(int argc, char **argv)
 	//	  robot.rotateRight();
 		//	count++;
 	//robot.goRobotGo();
-	ros::spinOnce();
-	loopRate.sleep();
-	  }
+
+    robot.turn_180();
+    ros::spinOnce();
+    loopRate.sleep();
+
+    //    }  
+
   return 0;
 }
 

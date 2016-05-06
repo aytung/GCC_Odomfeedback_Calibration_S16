@@ -26,7 +26,16 @@ const double left_180 = 2.5;
 
   // Basic initialization and publisher/subscribers. May need to adjust rates.
 
-
+void RoboState::turn_180()
+{
+  ROS_INFO("Turning 180 degrees left.");
+  usleep(movementInterval);
+  this->velocityCommand.linear.x = 0;
+  this->velocityCommand.angular.z = left_180;
+  velocityPublisher.publish(this->velocityCommand);
+  usleep(1000000);
+  velocityPublisher.publish(this->velocityCommand);
+}
 RoboState::RoboState(ros::NodeHandle rosNode): xCoord(0), yCoord(0), messageStatus(false), turnAndGoForward(false), xOdomOld(0), yOdomOld(0)
   {
     this->node = rosNode;
