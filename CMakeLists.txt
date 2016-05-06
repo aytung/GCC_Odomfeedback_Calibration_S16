@@ -5,10 +5,12 @@ project(turtlebot)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  nav_msgs
   roscpp
   rospy
   std_msgs
   message_generation
+  nav_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -68,6 +70,7 @@ add_message_files(
 generate_messages(
   DEPENDENCIES
   std_msgs
+  nav_msgs
 )
 
 ################################################
@@ -102,7 +105,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES sample_pubsub
-  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime
+  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime nav_msgs
   DEPENDS system_lib
 )
 
@@ -198,8 +201,8 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 # be specifed for the correct order of compilation
 add_executable(ui_node src/ui_node.cpp)
 target_link_libraries(ui_node ${catkin_LIBRARIES})
-add_dependencies(ui_node sample_pubsub_generate_messages_cpp)
+add_dependencies(ui_node sample_pubsub_generate_messages_cpp nav_msgs odom_listener tf nav_msgs_generate_messages_cpp)
 
 add_executable(nav_node src/nav_node.cpp)
 target_link_libraries(nav_node ${catkin_LIBRARIES})
-add_dependencies(nav_node sample_pubsub_generate_messages_cpp)
+add_dependencies(nav_node sample_pubsub_generate_messages_cpp nav_msgs tf nav_msgs_generate_messages_cpp)

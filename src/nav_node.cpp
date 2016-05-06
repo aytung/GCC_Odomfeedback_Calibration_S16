@@ -16,6 +16,13 @@
 |      |___|    
 |        ____________ Y-
   */
+double xOdom=0;
+double yOdom=0;
+void chatterCallback(const nav_msgs::Odometry::ConstPtr& msg)
+{
+  xOdom = msg->pose.pose.position.x;
+  yOdom = msg->pose.pose.position.y;
+}
 
 int main(int argc, char **argv)
 {
@@ -24,15 +31,19 @@ int main(int argc, char **argv)
   RoboState robot = RoboState(nh);
   //ros::Subscriber sub = nh.subscribe("my_msg", 1000, messageCallback);
   geometry_msgs::Twist cmd_vel;
+  ros::Subscriber sub = nh.subscribe("odom", 1000, chatterCallback);
+  
   ros::Rate loopRate(1); // 10 hz
   int count = 0; 
   while(ros::ok())
     {
 	
+      robot.setXodom(xOdom);
+      robot.setYodom(yOdom);
       // turnThenForward go is invoked when we want TurtleBot to turn in direction of destination
       // then go forward
-      //robot.testForward();
-		robot.turnThenForwardGo();
+      //      robot.testForward();
+      robot.goRobotGo();
       /*
 	if(count < 3)
 	  robot.testForward();
