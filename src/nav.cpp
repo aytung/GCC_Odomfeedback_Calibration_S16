@@ -22,9 +22,47 @@ const double movementInterval = 500000;
 
 const double left_180 = 2.5;
 
+const double angleConvert = 57.2958;
+
+
+
+void RoboState::setInitialXnegative(bool initialXstatus)
+{
+  initXneg = initialXstatus;
+}
+
+bool RoboState::getInitialXnegative()
+{
+  return initXneg;
+}
+
+bool RoboState::getTurnNegX()
+{
+  return negXturn;
+}
+
+void RoboState::setTurnNegX(bool turnStatus)
+{
+  negXturn = turnStatus;
+}
+
 // basically goForward does everything for us until it tells us we're done
 
   // Basic initialization and publisher/subscribers. May need to adjust rates.
+
+
+
+double detAngle(double zQuat, double wQuat)
+{
+  double theta_z = 2*asin(zQuat)*angleConvert;
+  double theta_w = 2*acos(wQuat)*angleConvert;
+  if(theta_w <= 180){
+    return theta_z;
+  }
+  else{
+    return -theta_z;
+  }
+}
 
 void RoboState::turn_180()
 {
@@ -36,7 +74,8 @@ void RoboState::turn_180()
   usleep(1000000);
   velocityPublisher.publish(this->velocityCommand);
 }
-RoboState::RoboState(ros::NodeHandle rosNode): xCoord(0), yCoord(0), messageStatus(false), turnAndGoForward(false), xOdomOld(0), yOdomOld(0)
+
+RoboState::RoboState(ros::NodeHandle rosNode): xCoord(0), yCoord(0), messageStatus(false), turnAndGoForward(false), xOdomOld(0), yOdomOld(0), negXturn(false), initXneg(false)
   {
     this->node = rosNode;
     this->velocityPublisher = this->node.advertise<geometry_msgs::Twist>("/mobile_base/commands/velocity", 1);
@@ -53,45 +92,36 @@ RoboState::RoboState(ros::NodeHandle rosNode): xCoord(0), yCoord(0), messageStat
 
   }
 
-/*
-void RoboState::xOdomCallback(const nav_msgs::Odometry::ConstPtr& odom)
-{
-  setXodom(odom->pose.pose.position.x);
-}
-*/
 
-
-/*
-void RoboState::yOdomCallback(const nav_msgs::Odometry::ConstPtr& odom)
-{
-  setYodom(odom->pose.pose.position.y);
-}
-*/
-
-
-
-/*
-void RoboState::odomCallback(const nav_msgs::Odometry::ConstPtr& odom)
-{
-  setXodom(odom->pose.pose.position.x);
-
-  setYodom(odom->pose.pose.position.y);
-}
-*/
 
 
 
 void RoboState::goRobotGo()
 {
+  if(isMessageSet()){
 
-  if(isMessageSet() && !getIsXswapped()){
-    goForwardX();
-  }
-  else if(isMessageSet() && getIsXswapped()){
+  if(getInitialXnegative()){
+    if(!getTurnNegX()){
+      turn_180();
+      setTurnNegX(true);
+    }
+    else if(!getIsXswapped()){
+      goForwardX();
+    }
+    else if(getIsXswapped()){
       goForwardY();
     }
+  } // end if
+  else{
+    if(!getIsXswapped())
+      goForwardX();
+    else if(getIsXswapped())
+      goForwardY();
+  } // end else
+  } // end if
 
-}
+} // end goRobotGo
+
 
 
   void RoboState::goForwardX()
@@ -112,7 +142,7 @@ void RoboState::goRobotGo()
 	usleep(movementInterval);
 	// in the x direction by incrementAmt
 	  
-	xMoveCommand = incrementAmt*movementMultiple*xIsNegative();
+	xMoveCommand = incrementAmt*movementMultiple;
 	this->velocityCommand.linear.x = xMoveCommand;
 	this->velocityCommand.angular.z = 0.0;
 	  
@@ -138,7 +168,7 @@ void RoboState::goRobotGo()
     else{
       // we have less than the incrementAmt left, so we move however much remaining
       // do not need to know if xCoord is negative or not, since we get the actual value
-      double xMoveCommand = getX()*movementMultiple;
+      double xMoveCommand = abs(getX())*movementMultiple;
       this->velocityCommand.linear.x = xMoveCommand;
       this->velocityCommand.angular.z = 0.0;
 
@@ -171,7 +201,7 @@ void RoboState::goForwardY()
 	  usleep(movementInterval);
 	  // in the x direction by incrementAmt
 	  
-	  xMoveCommand = incrementAmt*movementMultiple*yIsNegative();
+	  xMoveCommand = incrementAmt*movementMultiple;
 	  this->velocityCommand.linear.x = xMoveCommand;
 	  this->velocityCommand.angular.z = 0.0;
 	  
@@ -199,7 +229,7 @@ void RoboState::goForwardY()
 	  // we have less than the incrementAmt left, so we move however much remaining
 	  // do not need to know if xCoord is negative or not, since we get the actual value
 	  
-	double xMoveCommand = getY()*movementMultiple;
+	double xMoveCommand = abs(getY())*movementMultiple;
 	  this->velocityCommand.linear.x = xMoveCommand;
 	  this->velocityCommand.angular.z = 0.0;
 
@@ -224,6 +254,27 @@ void RoboState::goForwardY()
   {
     ROS_INFO("Switching x and y coordinates.");
     usleep(500000);
+    if(getInitialXnegative()){
+
+    if( getY() > 0) // means that destination is on right
+      rotateRight();
+    else if ( getY() < 0) // means that destination is on right
+      rotateLeft();
+    else 
+      setMessageStatus(false); // means that x and y was zero
+
+    if(getY() > 0){
+      ROS_INFO("Your y-coordinate is positive.");
+    }
+    else if(getY() < 0){
+      ROS_INFO("Your y-coordinate is negative.");
+    }
+      else{
+	ROS_INFO("Your y-coordinate is zero.");
+      }
+
+    }
+    else{
     if( getY() > 0) // means that destination is on right
       rotateLeft();
     else if ( getY() < 0) // means that destination is on right
@@ -231,17 +282,16 @@ void RoboState::goForwardY()
     else 
       setMessageStatus(false); // means that x and y was zero
     if(getY() > 0){
-      setX(getY());
       ROS_INFO("Your y-coordinate was positive.");
     }
     else if(getY() < 0){
-      setX(-getY());
       ROS_INFO("Your y-coordinate is negative.");
     }
       else{
 	ROS_INFO("Your y-coordinate is zero.");
       }
-    ROS_INFO("x and y coordinates swapped.");
+    }
+    ROS_INFO("Rotation successful.");
     setIsXswapped(true);
   }
 
@@ -283,6 +333,12 @@ void RoboState::messageCallback(const turtlebot::mymsg::ConstPtr& msg)
 	ROS_INFO("xCoord is: %f. yCoord is: %f", getX(), getY());
 	setMessageStatus(true);
 	setTurnAndGoForward(true);
+	if(getX() >= 0){
+	  setInitialXnegative(false);
+	  setTurnNegX(false);
+	}
+	else
+	  setInitialXnegative(true);
 	//setErr(sqrt(pow(getX(),2)+pow(getY(),2))*.1);
 	setErr(.1);
 	setIsXswapped(false);
@@ -291,69 +347,51 @@ void RoboState::messageCallback(const turtlebot::mymsg::ConstPtr& msg)
       ROS_INFO("Cannot accept message. Movement still in progress.");
     
     /* cout << "X: "<< msg->x << std::endl;
-  cout << "Y: " << msg->y << std::endl;
-  cout << endl;
+       cout << "Y: " << msg->y << std::endl;
+       cout << endl;
     */
 }
 
   
-  void RoboState::bumperCallback(const create_node::TurtlebotSensorState::ConstPtr& msg)
-  {
-    // if bumpers don't complain, don't run the loop
-    if(msg->bumps_wheeldrops != 0){
+
+void RoboState::bumperCallback(const create_node::TurtlebotSensorState::ConstPtr& msg)
+{
+  // if bumpers don't complain, don't run the loop
+  if(msg->bumps_wheeldrops != 0){
     ROS_INFO("You hit an object! Motion terminating.");
     ROS_INFO("The remaining x was:%f and the remaining y was: %f.", getX(), getY());
     setX(0);
     setY(0);
     // allow RoboState to receive messages again
     setMessageStatus(false);
-    }
   }
-
-
-
-
-
-/*
-void RoboState::yOdomCallback(const nav_msgs::Odometry::ConstPtr& yOdom)
-{
-
-
 }
 
-  void RoboState::xOdomCallback(const nav_msgs::Odometry::ConstPtr& xOdom)
-  {
-    setOdom
-
-  }
-  
-*/
-
   
 
-  bool RoboState::getTurnAndGoForward()
-  {
-    return turnAndGoForward;
-  }
+bool RoboState::getTurnAndGoForward()
+{
+  return turnAndGoForward;
+}
   
-  double RoboState::xIsNegative()
-  {
+double RoboState::xIsNegative()
+{
 
-    if( getX() >= 0)
-      return 1;
-    else
-      return -1;
-  }
+  if( getX() >= 0)
+    return 1;
+  else
+    return -1;
+}
 
 
- double RoboState::yIsNegative()
-  {
+double RoboState::yIsNegative()
+{
 
-    if( getY() >= 0)
-      return 1;
-    else
-      return -1;
-  }
+  if( getY() >= 0)
+    return 1;
+  else
+    return -1;
+}
 
   
   void RoboState::rotateLeft()
@@ -489,7 +527,167 @@ void RoboState::setIsXswapped(bool xSwapValue)
   isXswapped = xSwapValue;
 }
 
+/*
+void RoboState::xOdomCallback(const nav_msgs::Odometry::ConstPtr& odom)
+{
+  setXodom(odom->pose.pose.position.x);
+}
+*/
+
+
+/*
+void RoboState::yOdomCallback(const nav_msgs::Odometry::ConstPtr& odom)
+{
+  setYodom(odom->pose.pose.position.y);
+}
+*/
 
 
 
+/*
+void RoboState::odomCallback(const nav_msgs::Odometry::ConstPtr& odom)
+{
+  setXodom(odom->pose.pose.position.x);
+
+  setYodom(odom->pose.pose.position.y);
+}
+*/
+
+/*
+void RoboState::yOdomCallback(const nav_msgs::Odometry::ConstPtr& yOdom)
+{
+
+
+}
+
+  void RoboState::xOdomCallback(const nav_msgs::Odometry::ConstPtr& xOdom)
+  {
+    setOdom
+
+  }
+  
+*/
+
+/*
+void RoboState::goForwardXneg()
+{
+    // may need to adjust value for whatever reason
+
+    //    usleep(100000);
+
+    // amount left to move is greater than or equal to incrementAmt, so we move forward incrementAmt
+    if(getX() <= -incrementAmt || getX() >= incrementAmt )
+      {
+	
+	double xMoveCommand; 
+	
+	// only move forward incrementAmt if the amount left to move is greater than incrementAmt
+	//	if (std::abs(getX()) > incrementAmt){
+	// ideally, this should result in forward (or backward movement)
+	usleep(movementInterval);
+	// in the x direction by incrementAmt
+	  
+	xMoveCommand = incrementAmt*movementMultiple*xIsNegative();
+	this->velocityCommand.linear.x = xMoveCommand;
+	this->velocityCommand.angular.z = 0.0;
+	  
+	velocityPublisher.publish(this->velocityCommand);
+	//ROS_INFO("The amount we published was %f", xMoveCommand);
+	// ideally, this is the amount that x has changed
+	  
+	double currentXodom = getXodom();
+	double amountMoved = currentXodom-getXodomOld();
+	setX(getX()-amountMoved);
+	setXodomOld(currentXodom);
+	  
+	// we should wait until forward movement has finished before we go on
+	usleep(50000);
+
+	ROS_INFO("We moved %f", amountMoved);
+	ROS_INFO("The remaining amount to move is %f", getX());
+      }
+    else if(getX() <= getErr() && getX() >= -getErr()){
+      rotateLR();
+      setIsXswapped(true);
+    }
+    else{
+      // we have less than the incrementAmt left, so we move however much remaining
+      // do not need to know if xCoord is negative or not, since we get the actual value
+      double xMoveCommand = getX()*movementMultiple;
+      this->velocityCommand.linear.x = xMoveCommand;
+      this->velocityCommand.angular.z = 0.0;
+
+      velocityPublisher.publish(this->velocityCommand);
+      ROS_INFO("We moved forward %f", getX());
+      // assume we moved forward or backward in the exactly how much was left in xCoord
+
+      double currentXodom = getXodom();
+      double amountMoved = currentXodom-getXodomOld();
+      setX(getX()-amountMoved);
+      setXodomOld(currentXodom);
+
+      ROS_INFO("The remaining amount to move is %f (should be zero)", getX());
+    }
+
+}
+
+void RoboState::goForwardYneg()
+{
+
+  if(getY() <= -incrementAmt || getY() >= incrementAmt )
+      {
+	
+	double xMoveCommand; 
+	
+	// only move forward incrementAmt if the amount left to move is greater than incrementAmt
+	//if (std::abs(getX()) > incrementAmt){
+	  // ideally, this should result in forward (or backward movement)
+	  usleep(movementInterval);
+	  // in the x direction by incrementAmt
+	  
+	  xMoveCommand = incrementAmt*movementMultiple*yIsNegative();
+	  this->velocityCommand.linear.x = xMoveCommand;
+	  this->velocityCommand.angular.z = 0.0;
+	  
+	  velocityPublisher.publish(this->velocityCommand);
+
+	  // ideally, this is the amount that x has changed
+	  double currentYodom = getYodom();
+	  double amountMoved = currentYodom-getYodomOld();
+	  setY(getY()-amountMoved);
+	  setYodomOld(currentYodom);
+
+	  // we should wait until forward movement has finished before we go on
+	  usleep(50000);
+
+	  ROS_INFO("We moved %f", amountMoved);
+	  ROS_INFO("The remaining amount to move is %f", getY());
+      }
+      else if(getX() <= getErr() && getX() >= -getErr()){
+	
+	setMessageStatus(false);
+
+      }
+
+      else{
+	  // we have less than the incrementAmt left, so we move however much remaining
+	  // do not need to know if xCoord is negative or not, since we get the actual value
+	  
+	double xMoveCommand = getY()*movementMultiple;
+	  this->velocityCommand.linear.x = xMoveCommand;
+	  this->velocityCommand.angular.z = 0.0;
+
+	  velocityPublisher.publish(this->velocityCommand);
+	  ROS_INFO("We moved forward %f", getY());
+
+	  // assume we moved forward or backward in the exactly how much was left in xCoord
+	  double currentYodom = getXodom();
+	  double amountMoved = currentYodom-getYodomOld();
+	  setY(getY()-amountMoved);
+	  setYodomOld(currentYodom);
+
+	  ROS_INFO("The remaining amount to move is %f (should be around zero)", getY());
+      }
+}
+*/
 #endif

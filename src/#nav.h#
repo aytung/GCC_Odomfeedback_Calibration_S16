@@ -29,6 +29,8 @@ using namespace std;
 
 class RoboState
   {
+    bool initXneg;
+
     // void odomCallback(const nav_msgs::Odometry::ConstPtr& odom);
     // ros::Subscriber odomSubscriber;
     //        ros::Subscriber xOdomSubscriber;
@@ -41,14 +43,12 @@ class RoboState
     double yOdom;
     double xOdomOld;
     double yOdomOld;
-    bool initXneg;
     double xCoord;
     double yCoord;
     bool messageStatus;
     bool negXturn;
     bool isXswapped;
     double acceptErr;
-
     void setInitialXnegative(bool initialXstatus);
     bool getInitialXnegative();
     bool getTurnNegX();
