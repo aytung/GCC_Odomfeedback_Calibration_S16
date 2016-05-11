@@ -20,15 +20,18 @@
 |        ____________ Y-
   */
 
-/*
+
 double xOdom=0;
 double yOdom=0;
+/*
 void chatterCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
   xOdom = msg->pose.pose.position.x;
   yOdom = msg->pose.pose.position.y;
 }
 */
+
+/*
 bool rotated = false;
 double xOdom=0;
 double yOdom=0;
@@ -60,36 +63,6 @@ ros::Publisher velocityPublisher = nh.advertise <geometry_msgs::Twist>"/mobile_b
   }
 
 
-void chatterCallback(const nav_msgs::Odometry::ConstPtr& msg)
-{
-  
-  double zQuat = 0;
-  double wQuat = 0;
-  xOdom = msg->pose.pose.position.x;
-  yOdom = msg->pose.pose.position.y;
-  //  zQuat = msg->pose.pose.position.z;
-  //  wQuat = msg->pose.pose.orientation;
-  //  returnAngle = detAngle(zQuat, wQuat);
-  
-tf::Quaternion q(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.orientation.z,msg->pose.pose.orientation.w);
-tf::Matrix3x3 m(q);
-double roll, pitch, yaw;
-m.getRPY(roll, pitch, yaw);
- if (yawNeg=false){
-   if(returnYaw < 0)
-     returnYaw = 3.1416 - yaw;
-   else
-     returnYaw = yaw
-       }
- else{
-   if(returnYaw > 0)
-     returnYaw = -3.1416 - yaw;
-   else
-     returnYaw = yaw;
- }
-}
-
-
 void rotate(yawOffset)
 {
   if(yawOffset >= 1.5708)
@@ -106,29 +79,62 @@ void rotate(yawOffset)
 
 }
 
+*/
+
+void chatterCallback(const nav_msgs::Odometry::ConstPtr& msg)
+{
+  
+  double zQuat = 0;
+  double wQuat = 0;
+  xOdom = msg->pose.pose.position.x;
+  yOdom = msg->pose.pose.position.y;
+  //  zQuat = msg->pose.pose.position.z;
+  //  wQuat = msg->pose.pose.orientation;
+  //  returnAngle = detAngle(zQuat, wQuat);
+  /*  
+tf::Quaternion q(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.orientation.z,msg->pose.pose.orientation.w);
+tf::Matrix3x3 m(q);
+double roll, pitch, yaw;
+m.getRPY(roll, pitch, yaw);
+ if (yawNeg=false){
+   if(returnYaw < 0)
+     returnYaw = 3.1416 - yaw;
+   else
+     returnYaw = yaw;
+       }
+ else{
+   if(returnYaw > 0)
+     returnYaw = -3.1416 - yaw;
+   else
+     returnYaw = yaw;
+ }
+  */
+}
+
+
 
 int main(int argc, char **argv)
 {
 
   ros::init(argc, argv, "listener");
   ros::NodeHandle nh;
-  //RoboState robot = RoboState(nh);
-  //ros::Subscriber sub = nh.subscribe("my_msg", 1000, messageCallback);
+  RoboState robot = RoboState(nh);
+  //  ros::Subscriber sub = nh.subscribe("my_msg", 1000, messageCallback);
   geometry_msgs::Twist cmd_vel;
-  ros::Subscriber sub = nh.subscribe("odom", 1000, chatterCallback);
+  //  ros::Subscriber sub = nh.subscribe("odom", 1000, chatterCallback);
   
   ros::Rate loopRate(1); // 10 hz
   int count = 0; 
   
-  while(ros::ok() && rotated==false)
+  while(ros::ok()) //&& rotated==false)
     {
-      yawOffset = goalYaw - returnYaw;
-      rotate(yawOffset);
-      //      robot.setXodom(xOdom);
-      //      robot.setYodom(yOdom);
-      //      robot.setYaw(returnYaw);
+      //    yawOffset = goalYaw - returnYaw;
+      //      rotate(yawOffset);
+            robot.setXodom(xOdom);
+            robot.setYodom(yOdom);
+	    //            robot.setYaw(returnYaw);
       //robot.turn_180();
-      //robot.goRobotGo();
+      robot.goRobotGo();
     ros::spinOnce();
     loopRate.sleep();
     count++;

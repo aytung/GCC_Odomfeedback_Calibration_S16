@@ -362,7 +362,7 @@ double RoboState::xIsNegative()
 
   if( getX() >= 0)
     return 1;
-p  else
+  else
     return -1;
 }
 
