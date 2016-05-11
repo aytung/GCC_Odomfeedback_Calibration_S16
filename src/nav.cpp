@@ -26,25 +26,6 @@ const double angleConvert = 57.2958;
 
 
 
-void RoboState::setInitialXnegative(bool initialXstatus)
-{
-  initXneg = initialXstatus;
-}
-
-bool RoboState::getInitialXnegative()
-{
-  return initXneg;
-}
-
-bool RoboState::getTurnNegX()
-{
-  return negXturn;
-}
-
-void RoboState::setTurnNegX(bool turnStatus)
-{
-  negXturn = turnStatus;
-}
 
 // basically goForward does everything for us until it tells us we're done
 
@@ -220,9 +201,7 @@ void RoboState::goForwardY()
 	  ROS_INFO("The remaining amount to move is %f", getY());
       }
       else if(getX() <= getErr() && getX() >= -getErr()){
-	
 	setMessageStatus(false);
-
       }
 
       else{
@@ -275,7 +254,7 @@ void RoboState::goForwardY()
 
     }
     else{
-    if( getY() > 0) // means that destination is on right
+    if( getY() > 0) // means that destination is on left
       rotateLeft();
     else if ( getY() < 0) // means that destination is on right
       rotateRight();
@@ -327,6 +306,9 @@ void RoboState::messageCallback(const turtlebot::mymsg::ConstPtr& msg)
   //ROS_INFO("got packet: ");
     if(!isMessageSet())
       {
+	if(msg->x==0 && msg->y==0)
+	  ROS_INFO("No reason to move a distance of 0. Message not sent.");
+	else{	  
 	ROS_INFO("X and Y coordinates sent were: x:%f y:%f", msg->x, msg->y);
 	setX(msg->x);
 	setY(msg->y);
@@ -342,6 +324,7 @@ void RoboState::messageCallback(const turtlebot::mymsg::ConstPtr& msg)
 	//setErr(sqrt(pow(getX(),2)+pow(getY(),2))*.1);
 	setErr(.1);
 	setIsXswapped(false);
+	}
       }
     else
       ROS_INFO("Cannot accept message. Movement still in progress.");
@@ -379,7 +362,7 @@ double RoboState::xIsNegative()
 
   if( getX() >= 0)
     return 1;
-  else
+p  else
     return -1;
 }
 
@@ -525,6 +508,37 @@ bool RoboState::getIsXswapped()
 void RoboState::setIsXswapped(bool xSwapValue)
 {
   isXswapped = xSwapValue;
+}
+
+void RoboState::setInitialXnegative(bool initialXstatus)
+{
+  initXneg = initialXstatus;
+}
+
+bool RoboState::getInitialXnegative()
+{
+  return initXneg;
+}
+
+bool RoboState::getTurnNegX()
+{
+  return negXturn;
+}
+
+void RoboState::setYaw(double newYaw)
+{
+  yaw = newYaw;
+}
+
+double RoboState::getYaw()
+{
+  return yaw;
+}
+
+
+void RoboState::setTurnNegX(bool turnStatus)
+{
+  negXturn = turnStatus;
 }
 
 /*

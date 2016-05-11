@@ -29,26 +29,27 @@ using namespace std;
 
 class RoboState
   {
+    bool initXneg;
+
     // void odomCallback(const nav_msgs::Odometry::ConstPtr& odom);
     // ros::Subscriber odomSubscriber;
     //        ros::Subscriber xOdomSubscriber;
     //    ros::Subscriber yOdomSubscriber;
      //void xOdomCallback(const nav_msgs::Odometry::ConstPtr& odom);
     //    void yOdomCallback(const nav_msgs::Odometry::ConstPtr& odom);
+    
     double xTarget;
     double yTarget;
     double xOdom;
     double yOdom;
     double xOdomOld;
     double yOdomOld;
-    bool initXneg;
     double xCoord;
     double yCoord;
     bool messageStatus;
     bool negXturn;
     bool isXswapped;
     double acceptErr;
-
     void setInitialXnegative(bool initialXstatus);
     bool getInitialXnegative();
     bool getTurnNegX();
@@ -95,11 +96,14 @@ class RoboState
     bool getIsXswapped();
     void setIsXswapped(bool xSwapValue);
     double yIsNegative();
+    double yaw;
   public:
     void turn_180();
     void testForward();
     void setXodom(double xOdom);
-
+    void setYaw(double newYaw);
+    double getYaw();
+    
     void setYodom(double yOdom);
 
     RoboState(ros::NodeHandle rosNode);
