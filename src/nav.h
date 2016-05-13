@@ -30,9 +30,9 @@ using namespace std;
 class RoboState
   {
     bool initXneg;
-
-    // void odomCallback(const nav_msgs::Odometry::ConstPtr& odom);
-    // ros::Subscriber odomSubscriber;
+    
+    void odomCallback(const nav_msgs::Odometry::ConstPtr& odom);
+    ros::Subscriber odomSubscriber;
     //        ros::Subscriber xOdomSubscriber;
     //    ros::Subscriber yOdomSubscriber;
      //void xOdomCallback(const nav_msgs::Odometry::ConstPtr& odom);
@@ -50,13 +50,15 @@ class RoboState
     bool negXturn;
     bool isXswapped;
     double acceptErr;
-    void setInitialXnegative(bool initialXstatus);
-    bool getInitialXnegative();
+    double yawErr;
+    void faceDestination();
+    void determineYawGoal();
+    void rotateLR();
+    double yaw;
+    double yawGoal;
+    double tempYaw;
+    void setTurnNegX(bool xTurnStatus);
     bool getTurnNegX();
-    void setTurnNegX(bool turnStatus);
-    void goForwardXneg();
-    void goForwardYneg();
-    bool turnAndGoForward;
     //    ros::Subscriber yOdomSubscriber;
     //    ros::Subscriber xOdomSubscriber;
     ros::NodeHandle node;
@@ -68,12 +70,17 @@ class RoboState
     double xIsNegative();
     void incrementX(double x);
     void incrementY(double y);
-    void rotateLR();
+
     void setMessageStatus(bool status);
     bool isMessageSet();
     double getX();
     void setX(double x);
-    
+    void setInitialXnegative(bool initialXstatus);
+    bool getInitialXnegative();
+    bool rotated;
+    void setRotated(bool newRotated);
+    bool getRotated();
+
     void setY(double y);
     double getY();
     bool getTurnAndGoForward();
@@ -96,9 +103,11 @@ class RoboState
     bool getIsXswapped();
     void setIsXswapped(bool xSwapValue);
     double yIsNegative();
-    double yaw;
+    void setYawGoal(double newYawGoal);
+
   public:
-    void turn_180();
+    double getYawGoal();
+    //    void turn_180();
     void testForward();
     void setXodom(double xOdom);
     void setYaw(double newYaw);
