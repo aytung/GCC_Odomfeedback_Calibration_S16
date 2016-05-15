@@ -6,13 +6,17 @@
 #include <iostream>
 //#include "node_example/listener.h"
 #include "geometry_msgs/Twist.h"
-
 #include "create_node/TurtlebotSensorState.h"
 #include <string>
 #include <cstring>
 #include <math.h>
 #include <cmath>
 #include <nav_msgs/Odometry.h>
+
+// change this to 0 when you want to use goRobotGo
+// change this to 1 when you want to use nav_node.cpp
+#define USE_MAIN 1
+
  /* This is a visualization of what the x and y coordinates represent on 
    relative to the direction that the turtlebot is facing.
 |         X+        . (destination)
@@ -27,7 +31,7 @@
 
 using namespace std;
 
-enum class State{ TURN_NEG, MOVE_FORWARD_X,FACE_DESTINATION, MOVE_FORWARD_Y };
+enum State{ NEUTRAL, TURN_NEG_X, MOVE_FORWARD_X,FACE_DESTINATION, MOVE_FORWARD_Y };
     
 
 class RoboState
@@ -36,63 +40,22 @@ class RoboState
 
     // test function
     void testForward();
-
+    void goRobotGo();
     // constructor
     RoboState(ros::NodeHandle rosNode);
-
-    // determines what action to take
-    // void goRobotGo();
-    void turn_180();
+    
+#if USE_MAIN
+    void rotate_180();
     void goForwardX();
     void goForwardY();
-    
-    // get and set functions
-    void setTurnNegX(bool turnStatus);
-    bool getTurnNegX();
-    void setXodom(double xOdom);
-    void setYaw(double newYaw);
-    double getYaw();
-    void setYodom(double yOdom);
-    bool isMessageSet();
-    double getYawGoal();
-    void turnForward();
-    void rotateLeft();
-    void rotateRight();
-    void setErr(double err);
-    double getErr();
-    double getXodom();
-    double getYodom();
-    double getXodomOld();
-    double getYodomOld();
-    void setXodomOld(double xOdomCurrent);
-    void setYodomOld(double yOdomCurrent);
-    bool getIsXswapped();
-    void setIsXswapped(bool xSwapValue);
-    void setYawGoal(double newYawGoal);
-    double getX();
-    void setX(double x);
-    void setInitialXnegative(bool initialXstatus);
-    bool getInitialXnegative();
-    void setRotated(bool rotatedState);
-    bool getRotated();
-    void setY(double y);
-    double getY();
-    bool getTurnAndGoForward();
-    void setTurnAndGoForward(bool value);
+    State getCurrentState();
+    void incrementInternalCount();
+    void faceDestination();
+    bool currentCountOdd();
+    int getInternalCount();
+#endif
 
   private:
-    State currentState;
-    // various callback functions
-    void bumperCallback(const create_node::TurtlebotSensorState::ConstPtr& msg);
-    void messageCallback(const turtlebot::mymsg::ConstPtr& msg);
-    void setMessageStatus(bool status);    
-    void odomCallback(const nav_msgs::Odometry::ConstPtr& odom);
-    ros::Subscriber odomSubscriber;
-    int count;
-
-    void faceDestination();
-    void determineYawGoal();
-
     // the ros node being used by RoboState
     ros::NodeHandle node;    
 
@@ -103,13 +66,30 @@ class RoboState
     ros::Subscriber messageSubscriber;
     ros::Subscriber bumperSubscriber;
 
+    State currentState;
+    // various callback functions
+    void bumperCallback(const create_node::TurtlebotSensorState::ConstPtr& msg);
+    void messageCallback(const turtlebot::mymsg::ConstPtr& msg);
+    void setMessageStatus(bool status);    
+    void odomCallback(const nav_msgs::Odometry::ConstPtr& odom);
+    ros::Subscriber odomSubscriber;
+    int count;
+    int internalCount;
+    void determineYawGoal();
 
-    // incrementing functions (not used)
-    void incrementX(double x);
-    void incrementY(double y);
-    
+    // these are private if we just call goRobotGo
+#if !USE_MAIN
+    int getInternalCount();
+    void rotate_180();
+    void goForwardX();
+    void goForwardY();
+    State getCurrentState();
+    void incrementInternalCount();
+    void faceDestination();
+    bool currentCountOdd();
+#endif
+
     // private variables
-    bool initXneg;
     double xTarget;
     double yTarget;
     double xOdom;
@@ -118,15 +98,33 @@ class RoboState
     double yOdomOld;
     double xCoord;
     double yCoord;
-    bool messageStatus;
-    bool negXturn;
-    bool isXswapped;
     double acceptErr;
     double yawErr;
     double yaw;
     double yawGoal;
-    bool rotated;
-	    
+
+    // get and set functions
+    void setCurrentState(State newState);
+    void setXodom(double xOdom);
+    void setYaw(double newYaw);
+    double getYaw();
+    void setYodom(double yOdom);
+    double getYawGoal();
+    void rotateLeft();
+    void rotateRight();
+    void setErr(double err);
+    double getErr();
+    double getXodom();
+    double getYodom();
+    double getXodomOld();
+    double getYodomOld();
+    void setXodomOld(double xOdomCurrent);
+    void setYodomOld(double yOdomCurrent);
+    void setYawGoal(double newYawGoal);
+    double getX();
+    void setX(double x);
+    void setY(double y);
+    double getY();
 
   };
 #include "nav.cpp"
