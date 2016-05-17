@@ -16,7 +16,6 @@
 // change this to 0 when you want to use goRobotGo
 // change this to 1 when you want to use nav_node.cpp
 #define USE_MAIN 1
-
  /* This is a visualization of what the x and y coordinates represent on 
    relative to the direction that the turtlebot is facing.
 |         X+        . (destination)
@@ -43,8 +42,11 @@ class RoboState
     void goRobotGo();
     // constructor
     RoboState(ros::NodeHandle rosNode);
+    double getYaw();
+
     
 #if USE_MAIN
+
     void rotate_180();
     void goForwardX();
     void goForwardY();
@@ -55,7 +57,23 @@ class RoboState
     int getInternalCount();
 #endif
 
+#if DEBUG
+    void rotateLeft(double velocity);
+    void rotateRight(double velocity);
+    void rotateLeft_90();
+    void rotateRight_90();
+#endif
+    
   private:
+
+#if !DEBUG
+    void rotateLeft();
+    void rotateRight();
+    void rotateLeft_90();
+    void rotateRight_90();
+
+#endif
+
     // the ros node being used by RoboState
     ros::NodeHandle node;    
 
@@ -87,6 +105,7 @@ class RoboState
     void incrementInternalCount();
     void faceDestination();
     bool currentCountOdd();
+        double getYaw();
 #endif
 
     // private variables
@@ -107,11 +126,10 @@ class RoboState
     void setCurrentState(State newState);
     void setXodom(double xOdom);
     void setYaw(double newYaw);
-    double getYaw();
+
     void setYodom(double yOdom);
     double getYawGoal();
-    void rotateLeft();
-    void rotateRight();
+
     void setErr(double err);
     double getErr();
     double getXodom();

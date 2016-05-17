@@ -9,10 +9,10 @@
 #include <cmath>
 #include <nav_msgs/Odometry.h>
 #include <tf/transform_broadcaster.h>
-
+#define DEBUG 0
 // the least amount the turtlebot can move, otherwise odometry breaks;
 // serves as our acceptable error
-const double ANGLE_ERR = 10;
+const double ANGLE_ERR = 15;
 // how much we need in velocity commands to move INCREMENT_AMT forward
 const double MOVEMENT_MULTIPLE = 1.8; 
 // how much we move forward/backward each increment
@@ -28,6 +28,9 @@ const double ANGLE_CONVERT = 57.2958;
 // approximately Pi, used to indicate around 180 degrees (must be under pi, incase of overshooting
 const double YAW_180 = 3.1415;
 
+const double MIN_LEFT = .4;
+
+const double MIN_RIGHT = -.4;
 
 // initializer for RoboState::State (with default values)
 RoboState::RoboState(ros::NodeHandle rosNode): xCoord(0), yCoord(0), xOdomOld(0), yOdomOld(0), yaw(0), yawGoal(0), count(0), currentState(NEUTRAL), internalCount(0)
@@ -92,20 +95,24 @@ void RoboState::faceDestination()
 {
   ROS_INFO("Calling face destination.");
   
-  // how much we are off the goal
+  // how much we are off the goalppppp
   double yawOffset = getYawGoal() - getYaw();
 
   // means that we are off by more than 90 degrees
   if(yawOffset >= 90) {
     ROS_INFO("We are turning left because we were off by %f)", yawOffset);
     ROS_INFO("(Should be more than 90 degrees)");
+#if !DEBUG
     rotateLeft();
+#endif
   }
   // means that we are off by less than -90 degrees
   else if(yawOffset <= -90){
     ROS_INFO("We are turning right because yawOffset was %f", yawOffset);
     ROS_INFO("(Should be less than -90 degrees)");
+#if !DEBUG   
     rotateRight();
+#endif
   }
   // means that we are off by between 90 and -90 degrees
   else if(yawOffset >= ANGLE_ERR || yawOffset <= -ANGLE_ERR){
@@ -113,7 +120,13 @@ void RoboState::faceDestination()
     ROS_INFO("(Should be between 90 and -90 degrees)");
     usleep(MOVEMENT_INTERVAL);
     this->velocityCommand.linear.x = 0;
-    this->velocityCommand.angular.z = yawOffset*ANGLE_CONVERT*LEFT_90*LEFT_90;
+    if(yawOffset >= 0){
+      this->velocityCommand.angular.z = MIN_LEFT;
+    }
+    else
+      this->velocityCommand.angular.z = MIN_RIGHT;
+
+
     velocityPublisher.publish(this->velocityCommand);
 	  
   }
@@ -140,13 +153,17 @@ void RoboState::rotate_180()
   if(yawOffset >= 90){
     ROS_INFO("We are turning because we were off by %f)", yawOffset*ANGLE_CONVERT);
     ROS_INFO("(Should be more than %f degrees)", ANGLE_ERR);
+#if !DEBUG
     rotateLeft();
+#endif
   }
   // means that we are off by less than -90 degrees
   else if(yawOffset <= -90){
     ROS_INFO("We are turning right because yawOffset was %f", yawOffset*ANGLE_CONVERT);
     ROS_INFO("(Should be less than -%f degrees)", ANGLE_ERR);
+#if !DEBUG
     rotateRight();
+#endif
   }
   // means that we are off by between 90 and -90 degrees
   if(yawOffset >= ANGLE_ERR || yawOffset <= -ANGLE_ERR){
@@ -154,7 +171,13 @@ void RoboState::rotate_180()
     ROS_INFO("(Should be between 90 and -90 degrees)");
     usleep(MOVEMENT_INTERVAL);
     this->velocityCommand.linear.x = 0.0;
-    this->velocityCommand.angular.z = yawOffset*ANGLE_CONVERT*LEFT_90/90;
+    if(yawOffset >= 0){
+      this->velocityCommand.angular.z = MIN_LEFT;
+    }
+    else
+      this->velocityCommand.angular.z = MIN_RIGHT;
+
+
     velocityPublisher.publish(this->velocityCommand);
 
   }
@@ -362,7 +385,7 @@ void RoboState::testForward()
 void RoboState::messageCallback(const turtlebot::mymsg::ConstPtr& msg)
 {
   // only accept message if movement is not in progress
-  if(getCurrentState()!=NEUTRAL)
+  if(getCurrentState()==NEUTRAL)
     {
       if(msg->x==0 && msg->y==0)
 	ROS_INFO("No reason to move a distance of 0. Message not sent.");
@@ -405,8 +428,9 @@ void RoboState::bumperCallback(const create_node::TurtlebotSensorState::ConstPtr
   }
 }
   
+
 // we use this because it has been calibrated to turn 90 degrees left
-void RoboState::rotateLeft()
+void RoboState::rotateLeft_90()
 {
   ROS_INFO("Rotating left.");
   usleep(MOVEMENT_INTERVAL);
@@ -417,7 +441,7 @@ void RoboState::rotateLeft()
 }
 
 // we use this because it has been calibrated to turn 90 degrees right
-void RoboState::rotateRight()
+void RoboState::rotateRight_90()
 {
   ROS_INFO("Rotating right.");
   usleep(MOVEMENT_INTERVAL);
@@ -426,6 +450,60 @@ void RoboState::rotateRight()
   velocityPublisher.publish(this->velocityCommand);
   usleep(MOVEMENT_INTERVAL/5);
 }
+
+
+#if DEBUG
+// we use this because it has been calibrated to turn 90 degrees left
+void RoboState::rotateLeft(double velocity)
+{
+  ROS_INFO("The yaw was %f", getYaw());
+
+  ROS_INFO("Enter the velocity for left");
+  ROS_INFO("Rotating left.");
+  usleep(MOVEMENT_INTERVAL);
+  this->velocityCommand.linear.x = 0.0;
+  this->velocityCommand.angular.z = velocity;
+  velocityPublisher.publish(this->velocityCommand);
+  usleep(MOVEMENT_INTERVAL/5);
+}
+
+// we use this because it has been calibrated to turn 90 degrees right
+void RoboState::rotateRight(double velocity)
+{
+  ROS_INFO("The yaw was: %f", getYaw());
+  ROS_INFO("Enter the velocity for right");
+  ROS_INFO("Rotating right.");
+  usleep(MOVEMENT_INTERVAL);
+  this->velocityCommand.linear.x = 0.0;
+  this->velocityCommand.angular.z = velocity;
+  velocityPublisher.publish(this->velocityCommand);
+  usleep(MOVEMENT_INTERVAL/5);
+}
+#endif
+
+#if !DEBUG
+// we use this because it has been calibrated to turn 90 degrees left
+void RoboState::rotateLeft()
+{
+  ROS_INFO("Rotating left.");
+  usleep(MOVEMENT_INTERVAL);
+  this->velocityCommand.linear.x = 0.0;
+  this->velocityCommand.angular.z = MIN_LEFT;
+  velocityPublisher.publish(this->velocityCommand);
+  usleep(MOVEMENT_INTERVAL/5);
+}
+
+// we use this because it has been calibrated to turn 90 degrees right
+void RoboState::rotateRight()
+{
+  ROS_INFO("Rotating right.");
+  usleep(MOVEMENT_INTERVAL);
+  this->velocityCommand.linear.x = 0.0;
+  this->velocityCommand.angular.z = MIN_RIGHT;
+  velocityPublisher.publish(this->velocityCommand);
+  usleep(MOVEMENT_INTERVAL/5);
+}
+#endif
 
 /*
 
