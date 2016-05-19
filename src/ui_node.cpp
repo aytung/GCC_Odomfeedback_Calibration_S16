@@ -1,7 +1,7 @@
 #include "ros/ros.h"
 //#include "std_msgs/String.h"
 //#include "std_msgs/Float64.h"
-#include <turtlebot/mymsg.h>
+#include <nav_simple/mymsg.h>
 #include <sstream>
 
 /**
@@ -15,7 +15,7 @@ int main(int argc, char **argv)
   ros::NodeHandle n;
 
 
-  ros::Publisher chatter1_pub = n.advertise<turtlebot::mymsg>("my_msg", 1000);
+  ros::Publisher chatter1_pub = n.advertise<nav_simple::mymsg>("my_msg", 1000);
 
   ros::Rate loop_rate(1);
 
@@ -24,7 +24,7 @@ int main(int argc, char **argv)
   while (ros::ok())
   {
 
-    turtlebot::mymsg msg;
+    nav_simple::mymsg msg;
     //    std::stringstream ss;
     x = 0;
     y = 0;
